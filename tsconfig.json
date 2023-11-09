@@ -1,0 +1,7 @@
+{
+  "//": "Default tsconfig file, intended for typechecking only",
+  "extends": "./tsconfig.base.json",
+  "files": [],
+  "include": [],
+  "references": [{ "path": "./scripts" }]
+}

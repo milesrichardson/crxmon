@@ -1,0 +1,13 @@
+{
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#ff00b782",
+    "activityBar.activeBorder": "#26b7f9",
+    "activityBar.background": "#fdb3e3",
+    "activityBar.foreground": "#15202b",
+    "activityBar.inactiveForeground": "#15202b99",
+    "activityBarBadge.background": "#26b7f9",
+    "activityBarBadge.foreground": "#15202b"
+  },
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "prettier.configPath": "./.prettierrc"
+}
