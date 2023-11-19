@@ -9,6 +9,7 @@
     "esno": "0.17.0"
   },
   "dependencies": {
+    "unzip-crx-3": "0.2.0",
     "zx": "7.2.3"
   }
 }

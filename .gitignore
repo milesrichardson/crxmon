@@ -15,3 +15,7 @@
 node_modules
 
 .DS_Store
+
+
+# the extension stuff (note we want this to be submodule eventually)
+extensions

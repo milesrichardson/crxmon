@@ -56,3 +56,12 @@ interface EnvironmentVariablesFromYarn {
 namespace NodeJS {
   interface ProcessEnv extends EnvironmentVariablesFromYarn {}
 }
+
+// This is a bit of an ancient package, but it's the only one that works with
+// with crx files. Still, we need to add some typings to its function signature.
+declare module "unzip-crx-3" {
+  export default function unzipCrx(
+    crxPath: string,
+    destPath: string
+  ): Promise<void>;
+}
