@@ -6,9 +6,11 @@
     "zx": "esno --no-cache $(yarn bin zx)"
   },
   "devDependencies": {
+    "@types/minimist": "^1",
     "esno": "0.17.0"
   },
   "dependencies": {
+    "minimist": "1.2.8",
     "unzip-crx-3": "0.2.0",
     "zx": "7.2.3"
   }
