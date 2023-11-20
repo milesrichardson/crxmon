@@ -19,3 +19,6 @@ node_modules
 
 # the extension stuff (note we want this to be submodule eventually)
 extensions
+
+# Grab this file from https://github.com/DebugBear/chrome-extension-list
+extensions-2021.json
