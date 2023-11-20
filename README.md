@@ -31,6 +31,10 @@ yarn zx scripts/download-top-extensions.ts
 # Generate the top-extensions.json file, assuming extensions-2021.json exists
 # Get it here: https://github.com/DebugBear/chrome-extension-list
 yarn zx scripts/generate-top-extensions.ts
+
+# Print the top extensions, and the path to their downloaded manifest file
+# To print only the extensions that are not downloaded, pass --missing
+yarn zx scripts/print-extensions.ts --missing
 ```
 
 This repo uses Node v20 and Yarn v4.
