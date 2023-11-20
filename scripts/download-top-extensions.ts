@@ -24,7 +24,7 @@ const downloadTopExtensions = async (opts?: {
 
   const topExtensions = await getTopExtensions();
 
-  for (const [ranking, extension] of topExtensions.slice(0, 10).entries()) {
+  for (const [ranking, extension] of topExtensions.entries()) {
     const alreadyExists = await extensionExists({ extensionId: extension.id });
 
     const formattedPrefix = [ranking, extension.id, extension.name.padEnd(50)];
@@ -56,4 +56,4 @@ const downloadTopExtensions = async (opts?: {
   }
 };
 
-await downloadTopExtensions({ overwrite: true, prettify: true });
+await downloadTopExtensions({ overwrite: false, prettify: true });

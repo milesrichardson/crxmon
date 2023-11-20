@@ -25,3 +25,6 @@ extensions
 
 # Grab this file from https://github.com/DebugBear/chrome-extension-list
 extensions-2021.json
+
+# goals and aspirations are private information
+todo.md

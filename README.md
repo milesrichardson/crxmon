@@ -11,7 +11,10 @@ database that's checked in along with the code. It would also be cool to use
 some LLM magic to ask the databse questions about the corpus of extensions.
 
 There are about 130,000 Chrome extensions. The unpacked, prettified source files
-of the top 100 extensions seem to occupy roughly 220mb.
+of the top 10 extensions seem to occupy roughly 220mb. For the top 100
+extensions, the disk usage is roughly 1.5gb. The heaviest extension is LastPass,
+because of course it is, at 187mb. That's twice as big as the second biggest
+extension which is Screencastify.
 
 Right now this repo is just a collection of a few scripts:
 
