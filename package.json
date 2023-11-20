@@ -13,6 +13,7 @@
   },
   "scripts": {
     "test": "yarn vitest",
+    "typecheck": "yarn tsc --build --verbose --pretty tsconfig.json",
     "zx": "$(yarn zx-bin-esno) $(yarn zx-bin-zx)",
     "zx-bin-esno": "yarn workspace scripts bin esno",
     "zx-bin-zx": "yarn workspace scripts bin zx",

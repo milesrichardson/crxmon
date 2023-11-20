@@ -16,6 +16,8 @@ node_modules
 
 .DS_Store
 
+# Generated TypeScript files
+dist
 
 # the extension stuff (note we want this to be submodule eventually)
 !extensions/.gitkeep

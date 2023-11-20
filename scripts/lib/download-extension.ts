@@ -1,4 +1,4 @@
-import { chalk, log } from "zx";
+import { chalk } from "zx";
 import fs from "node:fs";
 
 // We need to use a (rather old) package specifically for unzipping crx3 files
