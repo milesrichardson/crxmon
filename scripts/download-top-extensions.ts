@@ -10,7 +10,7 @@ const downloadTopExtensions = async (opts?: {
   /**
    * Whether to overwrite an extension if it already exists.
    *
-   * Default: `true` (skip downloading extensions that already exist)
+   * Default: `false` (skip downloading extensions that already exist)
    * */
   overwrite?: boolean;
   /**
