@@ -6,10 +6,12 @@
     "zx": "esno --no-cache $(yarn bin zx)"
   },
   "devDependencies": {
+    "@types/jsdom": "21.1.6",
     "@types/minimist": "^1",
     "esno": "0.17.0"
   },
   "dependencies": {
+    "jsdom": "23.0.1",
     "minimist": "1.2.8",
     "unzip-crx-3": "0.2.0",
     "zx": "7.2.3"
