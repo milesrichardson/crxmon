@@ -11,6 +11,7 @@
     "esno": "0.17.0"
   },
   "dependencies": {
+    "crx-util": "1.0.0",
     "jsdom": "23.0.1",
     "minimist": "1.2.8",
     "unzip-crx-3": "0.2.0",
