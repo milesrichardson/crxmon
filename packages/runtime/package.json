@@ -1,0 +1,12 @@
+{
+  "name": "@crxmon/runtime",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "launch": "yarn run esno launch.ts",
+    "launch-debug": "yarn run esno --inspect-brk=127.0.0.1:9229 launch.ts"
+  },
+  "dependencies": {
+    "esno": "4.0.0"
+  }
+}

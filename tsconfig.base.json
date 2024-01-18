@@ -32,6 +32,9 @@
     "declaration": true,
     "declarationMap": true,
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "paths": {
+      "@crxmon/runtime/*": ["./packages/runtime/*"]
+    }
   }
 }

@@ -4,5 +4,5 @@
   "files": [],
   "include": [],
   "exclude": ["./extensions-2021.json"],
-  "references": [{ "path": "./scripts" }]
+  "references": [{ "path": "./scripts" }, { "path": "./packages/runtime" }]
 }
