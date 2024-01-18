@@ -3,3 +3,8 @@ node_modules
 .data
 dist
 build
+extensions-2021.json
+extensions
+zips
+.nyc_output
+instrumented
