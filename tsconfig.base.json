@@ -34,7 +34,7 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "paths": {
-      "@crxmon/runtime/*": ["./packages/runtime/*"]
+      "@crxmon/browser/*": ["./packages/browser/*"]
     }
   }
 }

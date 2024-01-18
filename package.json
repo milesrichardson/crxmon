@@ -22,6 +22,6 @@
     "format.check": "yarn run format.base --check . || { yarn run format.warn ; }",
     "format.base": "yarn prettier --config .prettierrc --ignore-path .prettierignore --ignore-unknown",
     "format.warn": "echo ; echo \"Formatting issues found. To apply changes, run yarn format\" ; exit 1 ;",
-    "runtime": "yarn workspace @crxmon/runtime run"
+    "browser": "yarn workspace @crxmon/browser run"
   }
 }

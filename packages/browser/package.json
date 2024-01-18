@@ -1,5 +1,5 @@
 {
-  "name": "@crxmon/runtime",
+  "name": "@crxmon/browser",
   "type": "module",
   "private": true,
   "scripts": {

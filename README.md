@@ -50,14 +50,14 @@ yarn typecheck
 yarn test
 ```
 
-If using `@crxmon/runtime`, need to install playwright browsers
+If using `@crxmon/browser`, need to install playwright browsers
 
 ```bash
-yarn runtime playwright install chromium
+yarn browser playwright install chromium
 
 # or --help to see all options (this is just a wrapper command)
-yarn runtime playwright --help
+yarn browser playwright --help
 
 # or for help with just the install command
-yarn runtime playwright help install
+yarn browser playwright help install
 ```

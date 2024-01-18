@@ -5,9 +5,9 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@crxmon/runtime@workspace:packages/runtime":
+"@crxmon/browser@workspace:packages/browser":
   version: 0.0.0-use.local
-  resolution: "@crxmon/runtime@workspace:packages/runtime"
+  resolution: "@crxmon/browser@workspace:packages/browser"
   dependencies:
     esno: "npm:4.0.0"
     playwright: "npm:1.41.0"
