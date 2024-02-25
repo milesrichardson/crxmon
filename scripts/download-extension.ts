@@ -10,32 +10,40 @@ const {
   _: [extensionId],
   help,
   prettify,
+  keepZip,
   overwrite,
+  doNotWriteKey,
 } = minimist(
   // NOTE: Assumes script is called like:
   // yarn zx scripts/download-extension.ts aapbdbdomjkkjkaonfhkkikfgjllcleb
   // (i.e., we are dropping `node`, the `zx` binary, and the script name)
   process.argv.slice(3),
   {
-    boolean: ["prettify", "overwrite", "help"],
+    boolean: ["prettify", "overwrite", "keepZip", "help", "doNotWriteKey"],
     default: {
       prettify: false,
       overwrite: false,
+      keepZip: false,
       help: false,
+      doNotWriteKey: false,
     },
     alias: {
       h: "help",
+      "keep-zip": "keepZip",
+      "do-not-write-key-to-manifest": "doNotWriteKey",
     },
   }
 ) as ParsedArgs & {
   prettify: boolean;
   overwrite: boolean;
   help: boolean;
+  keepZip: boolean;
+  doNotWriteKey: boolean;
 };
 
 const usage = () => {
   console.log(
-    "Usage: yarn zx scripts/download-extension.ts [--overwrite] [--prettify] <extensionId>"
+    "Usage: yarn zx scripts/download-extension.ts [--overwrite] [--prettify] [--keep-zip] [--do-not-write-key-to-manifest] <extensionId>"
   );
 };
 
@@ -63,7 +71,11 @@ if (await extensionExists({ extensionId })) {
   console.log(chalk.green(extensionId), ": does not exist, downloading...");
 }
 
-await downloadExtension({ extensionId });
+await downloadExtension({
+  extensionId,
+  keepZip,
+  writeKeyToManifest: !doNotWriteKey,
+});
 
 if (prettify) {
   console.log(chalk.green(extensionId), ": downloaded, prettifying...");

@@ -1,5 +1,6 @@
 import { chalk } from "zx";
 import fs from "node:fs";
+import path from "path";
 
 // We need to use a (rather old) package specifically for unzipping crx3 files
 // because the various zip extraction packages break with crx3 files.
@@ -12,10 +13,16 @@ import {
   maybeRemoveExtensionZip,
 } from "./extension-fs.js";
 
+import { getExtensionPublicKey } from "./extension-crypto.js";
+
 export const downloadExtension = async ({
   extensionId,
+  keepZip = false,
+  writeKeyToManifest = false,
 }: {
   extensionId: string;
+  keepZip?: boolean;
+  writeKeyToManifest?: boolean;
 }) => {
   try {
     const downloadURL = makeDownloadURL({ extensionId });
@@ -33,7 +40,46 @@ export const downloadExtension = async ({
 
     await removeExtension({ extensionId });
     await unzipCrx(extensionZipPath, extensionPath);
-    await maybeRemoveExtensionZip({ extensionId });
+
+    if (writeKeyToManifest) {
+      console.log("Extracting public key from crx:", extensionZipPath);
+      const extPubKey = await getExtensionPublicKey(extensionZipPath);
+      console.log("Writing key to manifest.json:", chalk.green(extPubKey));
+      const manifestPath = path.join(extensionPath, "manifest.json");
+      const manifestJson = await fs.promises.readFile(manifestPath, "utf-8");
+      const manifest = JSON.parse(manifestJson);
+
+      if (!extPubKey) {
+        throw new Error("Failed to extract public key from crx");
+      }
+
+      if (manifest.key) {
+        console.log("WARN: manifest already has key:", manifest.key);
+
+        if (manifest.key === extPubKey) {
+          console.log("INFO: manifest key is already set to the same");
+        } else {
+          console.log("WARN: overwriting different manifest key", manifest.key);
+        }
+      }
+
+      manifest.key = extPubKey;
+      const newManifestJson = JSON.stringify(manifest, null, 2);
+      await fs.promises.writeFile(manifestPath, newManifestJson);
+    }
+
+    if (!keepZip) {
+      await maybeRemoveExtensionZip({ extensionId });
+    } else {
+      console.log(
+        [
+          `Kept zip file at ${chalk.yellow(
+            extensionZipPath
+          )}, but next download will overwrite it.`,
+          "So make sure to move it if you want to keep it.",
+        ].join("\n")
+      );
+    }
 
     console.log(`Saved to ${chalk.yellow(extensionPath)}`);
   } catch (error) {
