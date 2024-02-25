@@ -1152,6 +1152,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"crx3-utils@npm:0.0.3":
+  version: 0.0.3
+  resolution: "crx3-utils@npm:0.0.3"
+  dependencies:
+    pbf: "npm:^3.2.0"
+  bin:
+    crx3-info: ./crx3-info
+    crx3-new: ./crx3-new
+    crx3-verify: ./crx3-verify
+  checksum: 52bb2cfdcf5b79526da75f913d447fb03525a089e9797cefa97752661616eb6a80714ec77a9589c8e054c6719c75894599a7c9d49c21d02fad03b42809efa0d0
+  languageName: node
+  linkType: hard
+
 "crxmon@workspace:.":
   version: 0.0.0-use.local
   resolution: "crxmon@workspace:."
@@ -1995,6 +2008,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ieee754@npm:^1.1.12":
+  version: 1.2.1
+  resolution: "ieee754@npm:1.2.1"
+  checksum: b0782ef5e0935b9f12883a2e2aa37baa75da6e66ce6515c168697b42160807d9330de9a32ec1ed73149aea02e0d822e572bca6f1e22bdcbd2149e13b050b17bb
+  languageName: node
+  linkType: hard
+
 "ignore@npm:^5.2.4":
   version: 5.2.4
   resolution: "ignore@npm:5.2.4"
@@ -2679,6 +2699,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"pbf@npm:^3.2.0":
+  version: 3.2.1
+  resolution: "pbf@npm:3.2.1"
+  dependencies:
+    ieee754: "npm:^1.1.12"
+    resolve-protobuf-schema: "npm:^2.1.0"
+  bin:
+    pbf: bin/pbf
+  checksum: 63b4a27749a9b5a3cf4260d75f9d91ad8d8b326bcdd2bfafd9460a94d0a297a80f80c70d5481213d6c4ebf03c027aca0ac9287c7d8217d327a6d0456f23b9d3c
+  languageName: node
+  linkType: hard
+
 "performance-now@npm:^2.1.0":
   version: 2.1.0
   resolution: "performance-now@npm:2.1.0"
@@ -2790,6 +2822,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"protocol-buffers-schema@npm:^3.3.1":
+  version: 3.6.0
+  resolution: "protocol-buffers-schema@npm:3.6.0"
+  checksum: 23a08612e5cc903f917ae3b680216ccaf2d889c61daa68d224237f455182fa96fff16872ac94b1954b5dd26fc7e8ce7e9360c54d54ea26218d107b2f059fca37
+  languageName: node
+  linkType: hard
+
 "ps-tree@npm:^1.2.0":
   version: 1.2.0
   resolution: "ps-tree@npm:1.2.0"
@@ -2897,6 +2936,15 @@ __metadata:
   version: 1.0.0
   resolution: "resolve-pkg-maps@npm:1.0.0"
   checksum: fb8f7bbe2ca281a73b7ef423a1cbc786fb244bd7a95cbe5c3fba25b27d327150beca8ba02f622baea65919a57e061eb5005204daa5f93ed590d9b77463a567ab
+  languageName: node
+  linkType: hard
+
+"resolve-protobuf-schema@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "resolve-protobuf-schema@npm:2.1.0"
+  dependencies:
+    protocol-buffers-schema: "npm:^3.3.1"
+  checksum: 8e656b9072b1c001952f851251413bc79d8c771c3015f607b75e1ca3b8bd7c4396068dd19cdbb3019affa03f6457d2c0fd38d981ffd714215cd2e7c2b67221a7
   languageName: node
   linkType: hard
 
@@ -3017,6 +3065,7 @@ __metadata:
     "@types/jsdom": "npm:21.1.6"
     "@types/minimist": "npm:^1"
     crx-util: "npm:1.0.0"
+    crx3-utils: "npm:0.0.3"
     esno: "npm:0.17.0"
     jsdom: "npm:23.0.1"
     minimist: "npm:1.2.8"
