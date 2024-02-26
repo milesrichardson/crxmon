@@ -10,11 +10,23 @@ export const getExtensionDataPaths = () => {
   return {
     allExtensionsPath: path.join(YarnVars.PROJECT_CWD, "extensions-2021.json"),
     topExtensionsPath: path.join(YarnVars.PROJECT_CWD, "top-extensions.json"),
+    getTopNExtensionsPath: (n: number) => {
+      if (!YarnVars.PROJECT_CWD) {
+        throw new Error("PROJECT_CWD is not set - is script running via Yarn?");
+      }
+
+      return path.join(YarnVars.PROJECT_CWD, `top-${n}-extensions.json`);
+    },
   };
 };
 
-export const getTopExtensions = async () => {
-  const { topExtensionsPath } = getExtensionDataPaths();
+export const getTopExtensions = async (numExtensions?: number) => {
+  let { topExtensionsPath, getTopNExtensionsPath } = getExtensionDataPaths();
+
+  if (numExtensions) {
+    topExtensionsPath = getTopNExtensionsPath(numExtensions);
+  }
+
   const data = await fs.promises.readFile(topExtensionsPath);
   return JSON.parse(data.toString()) as Extension[];
 };
