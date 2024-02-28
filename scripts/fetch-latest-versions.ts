@@ -17,7 +17,7 @@ const {
 
 const usage = () => {
   console.log(
-    "Usage: yarn zx scripts/fetch-latest-versions.ts <top100 | top500 | extension ID or comma-separated list of extension IDs>"
+    "Usage: yarn zx scripts/fetch-latest-versions.ts <top100 | top500 | top1000 | extension ID or comma-separated list of extension IDs>"
   );
 };
 
@@ -39,9 +39,10 @@ if (extensionIdOrIds === "top100") {
 } else if (extensionIdOrIds === "top500") {
   const top500 = await getTopExtensions(500);
   extensionIdOrIds = top500.map((ext) => ext.id);
+} else if (extensionIdOrIds === "top1000") {
+  const top1000 = await getTopExtensions(1000);
+  extensionIdOrIds = top1000.map((ext) => ext.id);
 }
-
-// console.log("extensionIdOrIds", (extensionIdOrIds as string[]).join("\n"));
 
 const infos = await fetchLatestExtensionInfo({ extensionIdOrIds });
 

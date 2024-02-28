@@ -4,6 +4,10 @@ export const fetchLatestExtensionInfo = async ({
   /**
    * Either an extension ID, or an array of extension IDs,
    * or a comma-separated string of multiple extension IDs
+   *
+   * The Google update protocol ("Omaha") is defined here:
+   * https://chromium.googlesource.com/chromium/src.git/+/master/docs/updater/protocol_3_1.md
+   *
    **/
   extensionIdOrIds: string | string[];
 }) => {
@@ -21,18 +25,7 @@ export const fetchLatestExtensionInfo = async ({
       app: [
         ...extensionIds.map((extensionId) => ({
           appid: extensionId,
-          packages: {
-            package: [
-              {
-                fp: "2.0",
-              },
-            ],
-          },
-          ping: {
-            r: -1,
-          },
           updatecheck: {},
-          version: "0",
         })),
       ],
       prodversion: chromeVersion,
