@@ -15,6 +15,7 @@
     "crx3-utils": "0.0.3",
     "jsdom": "23.0.1",
     "minimist": "1.2.8",
+    "node-fetch-cache": "4.1.0",
     "unzip-crx-3": "0.2.0",
     "zx": "7.2.3"
   }
