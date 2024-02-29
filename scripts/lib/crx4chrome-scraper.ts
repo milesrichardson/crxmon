@@ -1,5 +1,7 @@
-import { fetch } from "zx";
+import { fetch, path } from "zx";
 import { JSDOM } from "jsdom";
+import fetchCache, { FileSystemCache, CACHE_VERSION } from "node-fetch-cache";
+import { GET_YARN_VAR } from "./YarnVars.js";
 
 export const scrapeOverview = async ({
   extensionId,
@@ -25,12 +27,44 @@ export const scrapeOverview = async ({
   };
 };
 
+type CacheOptions = Parameters<typeof fetchCache.create>[0];
+type FSCacheOptions = ConstructorParameters<typeof FileSystemCache>[0];
+
 const downloadPageDocument = async ({
   url,
+  cache,
 }: {
   url: string;
+  cache?: {
+    useCache: boolean;
+    /** the cache subdirectory of .cache */
+    subdirectory?: string;
+    /** Override options */
+    cacheOptions?: CacheOptions;
+    /** Override options */
+    fsCacheOptions?: FSCacheOptions;
+  };
 }): Promise<Document> => {
-  const pageSource = await fetch(url).then((resp) => resp.text());
+  const defaultCacheSubdirectory = "crx4chrome";
+
+  const fetchImpl = cache?.useCache
+    ? fetchCache.create({
+        shouldCacheResponse: (response) => response.ok,
+        cache: new FileSystemCache({
+          cacheDirectory: path.join(
+            GET_YARN_VAR("PROJECT_CWD"),
+            ".data",
+            "node-fetch-cache",
+            defaultCacheSubdirectory,
+            cache?.subdirectory ?? ""
+          ),
+          ...cache?.fsCacheOptions,
+        }),
+        ...cache?.cacheOptions,
+      })
+    : fetch;
+
+  const pageSource = await fetchImpl(url).then((resp) => resp.text());
 
   const pageDOM = new JSDOM(pageSource, {
     url: url,
@@ -169,6 +203,294 @@ export const scrapeVersions = async ({
   });
 };
 
+type VersionDetailMetadata = {
+  /** e.g. "kbfnbcaeplbcioakkpcpgfkobkghlhen-14.1135.0-www.Crx4Chrome.com.crx" */
+  "crx-file": string;
+  /** e.g. "1.66 MB" or "37.09 MB (38892873 Bytes)" */
+  "file-size": string;
+
+  "package-version": string;
+
+  "updated-on": string;
+
+  /** guarded to have at least one of md5|sha1|sha256 */
+  md5?: string;
+  /** guarded to have at least one of md5|sha1|sha256 */
+  sha1?: string;
+  /** guarded to have at least one of md5|sha1|sha256 */
+  sha256?: string;
+  crc32?: string;
+
+  "extension-languages"?: string;
+  "theme-languages"?: string;
+
+  /** e.g. "Chrome version 88 or greater" */
+  require?: string;
+};
+
+const isVersionDetailMetadata = (obj: any): obj is VersionDetailMetadata => {
+  return (
+    typeof obj === "object" &&
+    "crx-file" in obj &&
+    "file-size" in obj &&
+    "package-version" in obj &&
+    ("sha1" in obj || "sha256" in obj || "md5" in obj || "crc32" in obj) &&
+    "updated-on" in obj
+  );
+};
+
+type RawLink = {
+  title: string;
+  href: string;
+  anchor: string;
+};
+
+type DownloadLinksMetadata = {
+  crx: {
+    google: `https://clients2.google.com/crx/blobs/${string}`;
+    crx4chrome?: `https://${string}.crx4chrome.com/crx.php?i=${string}&v=${string}`;
+  };
+  webstore?: `https://chrome.google.com/webstore/detail/${string}`;
+  unparsed: RawLink[];
+};
+
+const parseDownloadLinks = (
+  downloadLinks: RawLink[]
+): { downloadLinksMetadata: DownloadLinksMetadata; warnings?: string[] } => {
+  const downloadLinksMetadata = {
+    crx: {
+      google: "",
+      crx4chrome: "",
+    },
+    webstore: "",
+    unparsed: [] as RawLink[],
+  };
+
+  for (const link of downloadLinks) {
+    const parsedHref = new URL(
+      link.href.startsWith("/")
+        ? `https://www.crx4chrome.com${link.href}`
+        : link.href
+    );
+
+    downloadLinksMetadata.unparsed.push(link);
+
+    if (
+      link.title === "Download from Google CDN" ||
+      parsedHref.searchParams
+        .get("l")
+        ?.startsWith("https://clients2.google.com/crx/blobs/")
+    ) {
+      downloadLinksMetadata.crx.google = parsedHref.searchParams.get(
+        "l"
+      ) as DownloadLinksMetadata["crx"]["google"];
+    } else if (
+      link.title === "Download from Crx4Chrome" ||
+      (parsedHref.searchParams.get("l")?.startsWith("https://") &&
+        new URL(parsedHref.searchParams.get("l") as string).host.endsWith(
+          ".crx4chrome.com"
+        ))
+    ) {
+      downloadLinksMetadata.crx.crx4chrome = link.href;
+    } else if (
+      link.title === "Chrome Web Store" ||
+      link.href.startsWith("https://chrome.google.com/webstore/detail/")
+    ) {
+      // Strip tracking params
+      const webstoreURL = new URL(link.href);
+      [...webstoreURL.searchParams.keys()].forEach((key) =>
+        webstoreURL.searchParams.delete(key)
+      );
+
+      downloadLinksMetadata.webstore = webstoreURL.toString();
+    }
+  }
+
+  const checkResults = [
+    ["error", "crx.google", downloadLinksMetadata.crx.google] as const,
+    [
+      "warn",
+      "crx.crx4chrome",
+      downloadLinksMetadata.crx.crx4chrome,
+      (dl: DownloadLinksMetadata) => delete dl.crx.crx4chrome,
+    ] as const,
+    [
+      "warn",
+      "webstore",
+      downloadLinksMetadata.webstore,
+      (dl: DownloadLinksMetadata) => delete dl.webstore,
+    ] as const,
+  ] as const;
+
+  const fails = checkResults.filter(([_level, _key, value]) => !value);
+
+  for (const [_level, _key, _value, cleanup] of fails) {
+    if (cleanup) {
+      cleanup(downloadLinksMetadata as DownloadLinksMetadata);
+    }
+  }
+
+  const errors = fails.filter(([level]) => level === "error");
+  const warnings = fails.filter(([level]) => level === "warn");
+
+  const warningMessages = warnings.map(
+    ([_, key]) => `Missing download link: ${key}`
+  );
+
+  if (errors.length > 0) {
+    throw new Error(
+      `Missing download links: ${errors.map(([_, key]) => key).join(", ")}`
+    );
+  }
+
+  return {
+    downloadLinksMetadata: downloadLinksMetadata as DownloadLinksMetadata,
+    warnings: warningMessages.length > 0 ? warningMessages : undefined,
+  };
+};
+
+type HashSet = RequireAtLeastOne<{
+  md5: string;
+  sha1: string;
+  sha256: string;
+  crc32: string;
+}>;
+
+type CriticalDetailPageMetadata = {
+  crx: DownloadLinksMetadata["crx"];
+  webstore?: DownloadLinksMetadata["webstore"];
+  version: string;
+  updated: string;
+
+  hashes: HashSet;
+};
+
+const isHashSet = (obj: any): obj is HashSet => {
+  const keys = ["md5", "sha1", "sha256", "crc32"];
+
+  if (
+    typeof obj !== "object" ||
+    !keys.some((key) => key in obj) ||
+    keys.some((key) => key in obj && typeof key !== "string")
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
+const extractCriticalMetadata = ({
+  metadata,
+  downloadLinksMetadata,
+}: {
+  metadata: VersionDetailMetadata;
+  downloadLinksMetadata: DownloadLinksMetadata;
+}): CriticalDetailPageMetadata => {
+  const hashes = Object.fromEntries(
+    Object.entries(metadata).filter(([key]) =>
+      ["md5", "sha1", "sha256", "crc32"].includes(key)
+    )
+  ) as HashSet;
+
+  if (!isHashSet(hashes)) {
+    throw new Error(`Invalid hashes: ${JSON.stringify(hashes, null, 2)}`);
+  }
+
+  return {
+    crx: downloadLinksMetadata.crx,
+    webstore: downloadLinksMetadata.webstore,
+    version: metadata["package-version"],
+    updated: metadata["updated-on"],
+    hashes,
+  };
+};
+
+export const scrapeVersionDetailPage = async (
+  pathToCrx: `/crx/${number | string}/`
+) => {
+  if (!pathToCrx.startsWith("/crx/")) {
+    throw new Error(`Invalid pathToCrx: ${pathToCrx} doesn't start with /crx/`);
+  }
+
+  const detailPageURL = `https://www.crx4chrome.com${pathToCrx}`;
+  const detailPageDoc = await downloadPageDocument({
+    url: detailPageURL,
+    cache: {
+      useCache: true,
+      subdirectory: "crx",
+      cacheOptions: {
+        shouldCacheResponse: (response) => response.ok,
+        calculateCacheKey: (resource) => {
+          if (typeof resource !== "string") {
+            throw new Error("resource is not string");
+          }
+
+          return JSON.stringify([new URL(resource).pathname, CACHE_VERSION]);
+        },
+      },
+    },
+  });
+
+  const [metadataNode, downloadLinksNode] = Array.from(
+    detailPageDoc.querySelectorAll(".info")
+  ).slice(0, 2);
+
+  if (!metadataNode) {
+    throw new Error(`Could not find metadata in: ${detailPageURL}`);
+  }
+
+  if (!downloadLinksNode) {
+    throw new Error(`Could not find download links in: ${detailPageURL}`);
+  }
+
+  const metadata = Object.fromEntries(
+    Array.from(metadataNode.querySelectorAll("p"))
+      .map((el) => el.textContent)
+      .map((md) => {
+        if (!md) {
+          throw new Error("unexpected empty metadata node");
+        }
+
+        const [mdKey, ...mdVal] = md.split(":");
+        return [
+          mdKey.replace("•", "").trim().replaceAll(" ", "-").toLowerCase(),
+          mdVal.join().trim(),
+        ];
+      })
+  );
+
+  if (!isVersionDetailMetadata(metadata)) {
+    throw new Error(`Invalid metadata: ${JSON.stringify(metadata, null, 2)}`);
+  }
+
+  const downloadLinks = Array.from(
+    downloadLinksNode.querySelectorAll("p > a")
+  ).map((anchorTag) => ({
+    title: anchorTag.getAttribute("title"),
+    href: anchorTag.getAttribute("href"),
+    anchor: anchorTag.textContent,
+  })) as RawLink[];
+
+  const { downloadLinksMetadata, warnings } = parseDownloadLinks(downloadLinks);
+
+  if (warnings) {
+    warnings.forEach((warning) =>
+      console.log(`WARN(${pathToCrx}): ${warning}`)
+    );
+  }
+
+  return {
+    metadata: extractCriticalMetadata({
+      metadata,
+      downloadLinksMetadata,
+    }),
+    rawMetadata: {
+      metadata,
+      downloadLinksMetadata: downloadLinksMetadata,
+    },
+  };
+};
+
 // https://www.crx4chrome.com/extensions/kbfnbcaeplbcioakkpcpgfkobkghlhen/
 type Crx4ChromeExtensionOverview = {
   extensionId: string;
@@ -199,7 +521,16 @@ type Crx4ChromeExtensionOverview = {
    * 4/29/21 - 12/31/23 = 976 days (139.43 weeks)
    *
    *
+   * crx4 chrome ID goes up to (as of feb 29 2024) 352,596
+   * https://www.crx4chrome.com/crx/352596/
+   *
+   *
    */
 
   // numVersions: number;
 };
+
+type RequireAtLeastOne<T> = {
+  [K in keyof T]-?: Required<Pick<T, K>> &
+    Partial<Pick<T, Exclude<keyof T, K>>>;
+}[keyof T];
