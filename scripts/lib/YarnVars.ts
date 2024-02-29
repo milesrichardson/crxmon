@@ -9,3 +9,15 @@ export const YarnVars: EnvironmentVariablesFromYarn = {
   npm_config_user_agent: process.env.npm_config_user_agent,
   npm_lifecycle_event: process.env.npm_lifecycle_event,
 };
+
+export const GET_YARN_VAR = (varName: keyof EnvironmentVariablesFromYarn) => {
+  if (!YarnVars[varName]) {
+    throw new Error(`${varName} is not set - is script running via Yarn?`);
+  }
+
+  if (typeof YarnVars[varName] !== "string") {
+    throw new Error(`${varName} is not string type`);
+  }
+
+  return YarnVars[varName] as string;
+};
