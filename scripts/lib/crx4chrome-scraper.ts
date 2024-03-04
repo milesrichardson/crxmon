@@ -2,6 +2,7 @@ import { fetch, path } from "zx";
 import { JSDOM } from "jsdom";
 import fetchCache, { FileSystemCache, CACHE_VERSION } from "node-fetch-cache";
 import { GET_YARN_VAR } from "./YarnVars.js";
+import { extractExtensionVersionFromString } from "./extension-versions.js";
 
 export const scrapeOverview = async ({
   extensionId,
@@ -63,6 +64,11 @@ const downloadPageDocument = async ({
         ...cache?.cacheOptions,
       })
     : fetch;
+
+  // zx.fetch has a logger, but node-fetch-cache doesn't, so log it ourselves
+  if (cache?.useCache) {
+    console.error(`fetchCache: ${url}`);
+  }
 
   const pageSource = await fetchImpl(url).then((resp) => resp.text());
 
@@ -286,12 +292,16 @@ const parseDownloadLinks = (
       ) as DownloadLinksMetadata["crx"]["google"];
     } else if (
       link.title === "Download from Crx4Chrome" ||
-      (parsedHref.searchParams.get("l")?.startsWith("https://") &&
+      (parsedHref.searchParams.get("l") &&
+        parsedHref.searchParams.get("l")?.startsWith("https://") &&
         new URL(parsedHref.searchParams.get("l") as string).host.endsWith(
           ".crx4chrome.com"
         ))
     ) {
-      downloadLinksMetadata.crx.crx4chrome = link.href;
+      downloadLinksMetadata.crx.crx4chrome =
+        (parsedHref.searchParams.get(
+          "l"
+        ) as DownloadLinksMetadata["crx"]["crx4chrome"]) ?? link.href;
     } else if (
       link.title === "Chrome Web Store" ||
       link.href.startsWith("https://chrome.google.com/webstore/detail/")
@@ -399,7 +409,7 @@ const extractCriticalMetadata = ({
   return {
     crx: downloadLinksMetadata.crx,
     webstore: downloadLinksMetadata.webstore,
-    version: metadata["package-version"],
+    version: extractExtensionVersionFromString(metadata["package-version"]),
     updated: metadata["updated-on"],
     hashes,
   };
@@ -473,9 +483,10 @@ export const scrapeVersionDetailPage = async (
 
   const { downloadLinksMetadata, warnings } = parseDownloadLinks(downloadLinks);
 
+  // TODO: Pass this through the return value
   if (warnings) {
     warnings.forEach((warning) =>
-      console.log(`WARN(${pathToCrx}): ${warning}`)
+      console.error(`WARN(${pathToCrx}): ${warning}`)
     );
   }
 
