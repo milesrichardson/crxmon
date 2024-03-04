@@ -1,14 +1,12 @@
 // import { chalk } from "zx";
 import minimist, { type ParsedArgs } from "minimist";
 import {
-  // scrapeOverview,
-  // scrapeVersions,
+  scrapeOverview,
+  scrapeVersions,
   scrapeVersionDetailPage,
 } from "./lib/crx4chrome-scraper.js";
-import { fs, path } from "zx";
-import { GET_YARN_VAR } from "./lib/YarnVars.js";
 
-// import { extensionExists, getExtensionPath } from "./lib/extension-fs.js";
+import { compareExtensionVersionsDescending } from "./lib/extension-versions.js";
 
 /***
  *
@@ -60,71 +58,28 @@ if (!extensionId) {
   process.exit(1);
 }
 
-// const overview = await scrapeOverview({ extensionId });
-
+const overview = await scrapeOverview({ extensionId });
 // console.log(JSON.stringify(overview, null, 2));
 
-// const versions = await scrapeVersions({ extension: overview });
+const unsortedVersions = await scrapeVersions({ extension: overview });
 
 // console.log(JSON.stringify(versions, null, 2));
-
 // console.log("versions scraped:", versions.length);
 
-const randomCrxFile = path.join(
-  GET_YARN_VAR("PROJECT_CWD"),
-  "zips",
-  "sitemaps",
-  "random-crx.txt"
-);
+// const crxNumbers = versions.map((v) => v.crxPage.slice("/crx/".length, -1));
 
-const SAMPLE_N = 1000;
+// TODO: Handle error when scraping a version
+for (const version of unsortedVersions) {
+  const crxNumber = version.crxPage.slice("/crx/".length, -1);
 
-const crxNumbers = (await fs.readFile(randomCrxFile))
-  .toString()
-  .split("\n")
-  .map((url) => url.slice("https://www.crx4chrome.com/crx/".length, -1))
-  .slice(0, SAMPLE_N);
+  console.error("scraping version detail for", crxNumber, version.metadata[1]);
+  const { metadata } = await scrapeVersionDetailPage(`/crx/${crxNumber}/`);
 
-// fs.readFile("extensions-2021.json").then((data) => {
-
-const allMetadataKeys = new Set<string>();
-
-const metadataValueExamples: Record<string, string[]> = {};
-
-for (const crxNumber of crxNumbers) {
-  // console.log(crxNumber);
-
-  const { metadata: _m, rawMetadata } = await scrapeVersionDetailPage(
-    `/crx/${crxNumber}/`
-  );
-
-  const rawMetadataKeys = Object.keys(rawMetadata.metadata);
-  for (const key of rawMetadataKeys) {
-    allMetadataKeys.add(key);
-    const value: string =
-      rawMetadata.metadata[key as keyof typeof rawMetadata.metadata]!;
-
-    if (!(key in metadataValueExamples)) {
-      metadataValueExamples[key] = [];
-      // console.log("metadata key:", key, "value:", value);
-    }
-
-    if (
-      metadataValueExamples[key].length < SAMPLE_N &&
-      !metadataValueExamples[key].includes(value)
-    ) {
-      metadataValueExamples[key].push(value);
-    }
-  }
-
-  // console.log("---- ", crxNumber, " ----");
-  // console.log(JSON.stringify({ metadata, rawMetadata }, null, 2));
+  version.detail = metadata;
 }
 
-// console.log("allMetadataKeys", allMetadataKeys);
+const versions = unsortedVersions.sort((a, b) =>
+  compareExtensionVersionsDescending(a.detail.version, b.detail.version)
+);
 
-console.log(JSON.stringify([metadataValueExamples, allMetadataKeys], null, 2));
-
-// const { metadata, rawMetadata } = await scrapeVersionDetailPage(`/crx/100130/`);
-
-// console.log(JSON.stringify({ metadata, rawMetadata }, null, 2));
+console.log(JSON.stringify({ overview, versions }, null, 2));
