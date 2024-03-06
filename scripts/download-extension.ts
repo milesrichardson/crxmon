@@ -13,6 +13,8 @@ const {
   keepZip,
   overwrite,
   doNotWriteKey,
+  extensionPath,
+  extensionZipPath,
 } = minimist(
   // NOTE: Assumes script is called like:
   // yarn zx scripts/download-extension.ts aapbdbdomjkkjkaonfhkkikfgjllcleb
@@ -31,6 +33,8 @@ const {
       h: "help",
       "keep-zip": "keepZip",
       "do-not-write-key-to-manifest": "doNotWriteKey",
+      "extension-path": "extensionPath",
+      "extension-zip-path": "extensionZipPath",
     },
   }
 ) as ParsedArgs & {
@@ -39,12 +43,24 @@ const {
   help: boolean;
   keepZip: boolean;
   doNotWriteKey: boolean;
+
+  extensionPath?: string;
+  extensionZipPath?: string;
 };
 
 const usage = () => {
   console.log(
-    "Usage: yarn zx scripts/download-extension.ts [--overwrite] [--prettify] [--keep-zip] [--do-not-write-key-to-manifest] <extensionId>"
+    "Usage: yarn zx scripts/download-extension.ts [--overwrite] [--prettify] " +
+      "[--keep-zip] [--do-not-write-key-to-manifest] " +
+      "[--extensionPath <path to extracted extension directory>] " +
+      "[--extensionZipPath <path to downloaded .crx file>] <extensionId>"
   );
+  console.log();
+  console.log("Notes:");
+  console.log(" --extensionPath and --extensionZipPath are both optional");
+  console.log(" --extensionPath defaults to extensions/{extensionId}");
+  console.log(" --extensionZipPath defaults to extensions/{extensionId}.zip");
+  console.log("   or, if --extensionPath was passed, to {extensionPath}.zip");
 };
 
 if (help) {
@@ -57,7 +73,7 @@ if (!extensionId) {
   process.exit(1);
 }
 
-if (await extensionExists({ extensionId })) {
+if (await extensionExists({ extensionId, extensionPath })) {
   if (!overwrite) {
     console.log(
       chalk.gray(extensionId),
@@ -75,11 +91,13 @@ await downloadExtension({
   extensionId,
   keepZip,
   writeKeyToManifest: !doNotWriteKey,
+  extensionPath,
+  extensionZipPath,
 });
 
 if (prettify) {
   console.log(chalk.green(extensionId), ": downloaded, prettifying...");
-  await prettifyExtension({ extensionId });
+  await prettifyExtension({ extensionId, extensionPath });
 } else {
   console.log(
     chalk.gray(extensionId),
