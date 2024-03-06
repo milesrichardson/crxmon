@@ -17,7 +17,7 @@ export const fetchLatestExtensionInfo = async ({
 
   const updatecheckURL = "https://update.googleapis.com/service/update2/json";
 
-  const chromeVersion = "121.0.6167.57";
+  const chromeVersion = "124.0.6339.0";
 
   const body = {
     request: {
@@ -30,6 +30,12 @@ export const fetchLatestExtensionInfo = async ({
       ],
       prodversion: chromeVersion,
       protocol: "3.1",
+      /**
+       * Don't count the update in metrics
+       * ("Any value other than the empty string indicates that the request
+       *   should not be counted toward official metrics")
+       */
+      testsource: "autoupdate",
     },
   };
 
@@ -41,9 +47,9 @@ export const fetchLatestExtensionInfo = async ({
     body: JSON.stringify(body),
   });
 
-  // Server returns invalid JSON. Maybe it's a bug or a feature, so remove it if there
+  // Server returns invalid JSON (according to spec, to avoid naive execution of response)
+  // Specifically: JSON responses from the server are prefixed with )]}'\n
   const responseText = await response.text();
-
   const data = (() => {
     try {
       if (responseText.startsWith(")]}'\n")) {
