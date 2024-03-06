@@ -2,6 +2,11 @@ import fs from "node:fs";
 import path from "path";
 import { YarnVars } from "./YarnVars.js";
 
+// TODO: Refactor this file. It was originally written assuming a static/default
+// location for extensions and extension zips, and then was made more flexible,
+// to take each optionally, but as a result the code is now more unwieldy,
+// duplicative, and harder to understand or write correctly.
+
 /**
  * Return the path to the directory for the given extension ID.  By default,
  * return an absolute path.  To return a path relative to PROJECT_CWD, set
@@ -33,10 +38,21 @@ export const getExtensionPath = ({
 
 export const getExtensionZipPath = ({
   extensionId,
+  extensionPath,
 }: {
   extensionId: string;
+
+  /**
+   * Optional local path to the directory where the extension should be
+   * extracted (i.e., `extensionPath/manifest.json` will exist after
+   * extraction).
+   *
+   * If not specified, the path will be constructed using
+   * the {@link getExtensionPath} function.
+   */
+  extensionPath?: string;
 }) => {
-  return getExtensionPath({ extensionId }) + ".zip";
+  return (extensionPath ?? getExtensionPath({ extensionId })) + ".zip";
 };
 
 const pathExistsAndIsAccessible = async (targetPath: string) => {
@@ -48,18 +64,55 @@ const pathExistsAndIsAccessible = async (targetPath: string) => {
 
 export const extensionExists = async ({
   extensionId,
+  extensionPath,
 }: {
   extensionId: string;
+
+  /**
+   * Optional local path to the directory where the extension should be
+   * extracted (i.e., `extensionPath/manifest.json` will exist after
+   * extraction).
+   *
+   * If not specified, the path will be constructed using
+   * the {@link getExtensionPath} function.
+   */
+  extensionPath?: string;
 }) => {
-  return await pathExistsAndIsAccessible(getExtensionPath({ extensionId }));
+  return await pathExistsAndIsAccessible(
+    extensionPath ?? getExtensionPath({ extensionId })
+  );
 };
 
-export const extensionZipExists = async ({
+const extensionZipExists = async ({
   extensionId,
+  extensionZipPath,
+  extensionPath,
 }: {
   extensionId: string;
+  /**
+   * Optional local path to the file where the compressed extension (i.e.,
+   * the `crx` file) should be saved.
+   *
+   * If not specified, the path will be constructed using
+   * the {@link getExtensionZipPath} function, which defaults
+   * to saving the file parallel to the extension directory, with the name
+   * of `{extensionId}.zip`.
+   */
+  extensionZipPath?: string;
+
+  /**
+   * Optional local path to the directory where the extension should be
+   * extracted (i.e., `extensionPath/manifest.json` will exist after
+   * extraction).
+   *
+   * If not specified, the path will be constructed using
+   * the {@link getExtensionPath} function.
+   */
+  extensionPath?: string;
 }) => {
-  return await pathExistsAndIsAccessible(getExtensionZipPath({ extensionId }));
+  return await pathExistsAndIsAccessible(
+    extensionZipPath ?? getExtensionZipPath({ extensionId, extensionPath })
+  );
 };
 
 /**
@@ -72,12 +125,21 @@ export const extensionZipExists = async ({
  */
 export const removeExtension = async ({
   extensionId,
+  extensionPath,
 }: {
   extensionId: string;
+  /**
+   * Optional local path to the directory where the extension should be
+   * extracted (i.e., `extensionPath/manifest.json` will exist after
+   * extraction).
+   *
+   * If not specified, the path will be constructed using
+   * the {@link getExtensionPath} function.
+   */
+  extensionPath?: string;
 }) => {
-  if (await extensionExists({ extensionId })) {
-    const extensionPath = getExtensionPath({ extensionId });
-    await fs.promises.rm(extensionPath, {
+  if (await extensionExists({ extensionId, extensionPath })) {
+    await fs.promises.rm(extensionPath ?? getExtensionPath({ extensionId }), {
       recursive: true,
       force: true,
     });
@@ -91,11 +153,35 @@ export const removeExtension = async ({
  */
 export const maybeRemoveExtensionZip = async ({
   extensionId,
+  extensionZipPath,
+  extensionPath,
 }: {
   extensionId: string;
+  /**
+   * Optional local path to the file where the compressed extension (i.e.,
+   * the `crx` file) should be saved.
+   *
+   * If not specified, the path will be constructed using
+   * the {@link getExtensionZipPath} function, which defaults
+   * to saving the file parallel to the extension directory, with the name
+   * of `{extensionId}.zip`.
+   */
+  extensionZipPath?: string;
+  /**
+   * Optional local path to the directory where the extension should be
+   * extracted (i.e., `extensionPath/manifest.json` will exist after
+   * extraction).
+   *
+   * If not specified, the path will be constructed using
+   * the {@link getExtensionPath} function.
+   */
+  extensionPath?: string;
 }) => {
-  const extensionZipPath = getExtensionZipPath({ extensionId });
-  if (await extensionZipExists({ extensionId })) {
-    await fs.promises.rm(extensionZipPath);
+  if (
+    await extensionZipExists({ extensionId, extensionZipPath, extensionPath })
+  ) {
+    await fs.promises.rm(
+      extensionZipPath ?? getExtensionZipPath({ extensionId, extensionPath })
+    );
   }
 };

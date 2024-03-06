@@ -5,14 +5,27 @@ import { withCdRepoRoot } from "./with-cd-repo-root.js";
 
 export const prettifyExtension = async ({
   extensionId,
+  extensionPath,
 }: {
   extensionId: string;
+
+  /**
+   * Optional local path to the directory containing the unpacked extension
+   * files.
+   *
+   * If not specified, the path will be constructed using
+   * the {@link getExtensionPath} function.
+   *
+   */
+  extensionPath?: string;
 }) =>
   withCdRepoRoot(async ({}) => {
-    const extensionPath = getExtensionPath({
-      extensionId,
-      relativeFromProjectCwd: true,
-    });
+    extensionPath =
+      extensionPath ??
+      getExtensionPath({
+        extensionId,
+        relativeFromProjectCwd: true,
+      });
 
     const flags = [
       "--no-editorconfig",

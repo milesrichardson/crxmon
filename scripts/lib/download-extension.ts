@@ -19,16 +19,53 @@ export const downloadExtension = async ({
   extensionId,
   keepZip = false,
   writeKeyToManifest = false,
+  downloadURL,
+  extensionPath,
+  extensionZipPath,
 }: {
   extensionId: string;
   keepZip?: boolean;
   writeKeyToManifest?: boolean;
+
+  /**
+   * Optional URL from where to download the extension. If not specified, the
+   * URL will be constructed based on the extensionId, using the method to get
+   * the download URL of the latest version from the Chrome webstore, using the
+   * {@link makeDownloadURL} function.
+   * */
+  downloadURL?: string;
+
+  /**
+   * Optional local path to the directory where the extension should be
+   * extracted (i.e., `extensionPath/manifest.json` will exist after
+   * extraction).
+   *
+   * If not specified, the path will be constructed
+   * using the {@link getExtensionPath} function.
+   */
+  extensionPath?: string;
+
+  /**
+   * Optional local path to the file where the compressed extension (i.e.,
+   * the `crx` file) should be saved.
+   *
+   * If not specified, the path will be constructed using
+   * the {@link getExtensionZipPath} function, which defaults
+   * to saving the file parallel to the extension directory, with the name
+   * of `{extensionId}.zip`.
+   */
+  extensionZipPath?: string;
 }) => {
   try {
-    const downloadURL = makeDownloadURL({ extensionId });
+    downloadURL =
+      downloadURL ??
+      makeDownloadURL({
+        extensionId,
+      });
 
-    const extensionPath = getExtensionPath({ extensionId });
-    const extensionZipPath = getExtensionZipPath({ extensionId });
+    extensionPath = extensionPath ?? getExtensionPath({ extensionId });
+    extensionZipPath =
+      extensionZipPath ?? getExtensionZipPath({ extensionId, extensionPath });
 
     const response = await fetch(downloadURL, { redirect: "follow" });
 
@@ -38,9 +75,10 @@ export const downloadExtension = async ({
 
     await fs.promises.writeFile(extensionZipPath, response.body);
 
-    await removeExtension({ extensionId });
+    await removeExtension({ extensionId, extensionPath });
     await unzipCrx(extensionZipPath, extensionPath);
 
+    // TODO: Support writeKeyOutsideManifest (or callback with key, to write to lockfile)
     if (writeKeyToManifest) {
       console.log("Extracting public key from crx:", extensionZipPath);
       const extPubKey = await getExtensionPublicKey(extensionZipPath);
@@ -69,7 +107,11 @@ export const downloadExtension = async ({
     }
 
     if (!keepZip) {
-      await maybeRemoveExtensionZip({ extensionId });
+      await maybeRemoveExtensionZip({
+        extensionId,
+        extensionPath,
+        extensionZipPath,
+      });
     } else {
       console.log(
         [
@@ -88,8 +130,12 @@ export const downloadExtension = async ({
     );
 
     // Cleanup if possible: remove the extension directory and/or its zip file
-    await removeExtension({ extensionId });
-    await maybeRemoveExtensionZip({ extensionId });
+    await removeExtension({ extensionId, extensionPath });
+    await maybeRemoveExtensionZip({
+      extensionId,
+      extensionPath,
+      extensionZipPath,
+    });
   }
 };
 
@@ -103,7 +149,7 @@ const makeDownloadURL = ({ extensionId }: { extensionId: string }) => {
     nacl_arch: "x86-64",
     prod: "chromecrx",
     prodchannel: "canary",
-    prodversion: "121.0.6116.0",
+    prodversion: "124.0.6339.0",
     lang: "en-US",
     acceptformat: "crx3,puff",
   });
