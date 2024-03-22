@@ -33,10 +33,34 @@ const main = async () => {
         "grammarly-error-log.json"
       );
       break;
+    case "install-state-by-version":
+      await createInstallStateByVersionFile();
+      break;
+    case "inspect-install-state":
+      await inspectInstallStateByVersion();
+      break;
+    case "create-prune-script":
+      await createPruneScript();
+      break;
     default:
       console.log(chalk.red("Invalid command"));
       break;
   }
+};
+
+const writeLinesToFile = async (lines: string[], pathFromRepoRoot: string) => {
+  await fs.writeFile(
+    path.join(
+      GET_YARN_VAR("PROJECT_CWD"),
+      ...(Array.isArray(pathFromRepoRoot)
+        ? pathFromRepoRoot
+        : [pathFromRepoRoot])
+    ),
+    lines.join("\n"),
+    {
+      encoding: "utf-8",
+    }
+  );
 };
 
 const writeJSONToFile = async (
@@ -400,7 +424,7 @@ const getChecksums = async (filename: string) => {
 
 type ChecksumMismatch = {
   algo: string;
-  error: "MISMATCH_LEADING_ZERO" | "MISMATCH" | "MISSING";
+  error: "MISMATCH_LEADING_ZERO" | "MISMATCH_WARNING" | "MISMATCH" | "MISSING";
   expected: string;
   actual?: string;
 };
@@ -554,6 +578,23 @@ const createInstallStateFile = async (
               expected: expectedChecksum,
               actual,
             });
+          } else if (
+            algo === "crc32" &&
+            Object.entries(expectedChecksums).length > 1
+          ) {
+            // crc32 is too finnicky, so we'll add it only to warnings, as long as there
+            // are other hashes that can match.
+            console.warn(
+              "MISMATCH(warning, crc32)",
+              algo,
+              downloadState.extensionZipPath
+            );
+            checksumWarnings.push({
+              algo,
+              error: "MISMATCH_WARNING",
+              expected: expectedChecksum,
+              actual,
+            });
           } else {
             console.warn("MISMATCH!", algo, downloadState.extensionZipPath);
             checksumMismatches.push({
@@ -596,5 +637,149 @@ const createInstallStateFile = async (
 
   await writeJSONToFile(installState, "install-state-log.json");
 };
+
+type InstallStateByVersion = {
+  [version: string]: {
+    copies: InstallStateEntry[];
+    warnings: { code: string; details: any }[];
+  };
+};
+
+const createInstallStateByVersionFile = async () => {
+  const installStateByVersion: InstallStateByVersion = {};
+
+  const installStateLog = await readJSONFromFile<InstallStateEntry[]>(
+    "install-state-log.json"
+  ).catch((_) => {
+    console.info("Error reading install-state-log.json, starting fresh...");
+    return [];
+  });
+
+  for (const entry of installStateLog) {
+    if (!(entry.versionDetail.version in installStateByVersion)) {
+      installStateByVersion[entry.versionDetail.version] = {
+        copies: [],
+        warnings: [],
+      };
+    }
+
+    if (
+      installStateByVersion[entry.versionDetail.version].copies.find(
+        (copy) =>
+          copy.downloadState.extensionZipPath ===
+          entry.downloadState.extensionZipPath
+      )
+    ) {
+      installStateByVersion[entry.versionDetail.version].warnings.push({
+        code: "DUPLICATE_ENTRY",
+        details: entry,
+      });
+      continue;
+    }
+
+    installStateByVersion[entry.versionDetail.version].copies.push(entry);
+  }
+
+  await writeJSONToFile(installStateByVersion, "install-state-by-version.json");
+};
+
+const inspectInstallStateByVersion = async () => {
+  const installStateByVersion = await readJSONFromFile<InstallStateByVersion>(
+    "install-state-by-version.json"
+  );
+
+  for (const [version, { copies }] of Object.entries(installStateByVersion)) {
+    if (copies.length === 1) {
+      continue;
+    }
+
+    const uniqueChecksums = new Set<string>();
+    for (const copy of copies) {
+      uniqueChecksums.add(
+        JSON.stringify(copy.installState?.checksums, null, 2)
+      );
+    }
+
+    if (uniqueChecksums.size > 1) {
+      console.error("VERSION:", version, "has different checksums");
+    }
+
+    console.log(version, copies.length);
+  }
+};
+
+/**
+ * Grammarly size comparison
+ * Before dupes:
+ *  621 crx files
+ *  Metadata has 507 versions (~505 unique?)
+ *  116 duplicates (makes sense -> 621-116 = 505)
+ *  Total disk usage:  33.4 GiB  Apparent size:  33.2 GiB  Items: 168,349
+ *
+ * After delete (116 dupes):
+ *  505 crx files
+ *  Total disk usage:  22.5 GiB  Apparent size:  22.4 GiB  Items: 106,018
+ *
+ */
+const createPruneScript = async () => {
+  const installStateByVersion = await readJSONFromFile<InstallStateByVersion>(
+    "install-state-by-version.json"
+  );
+
+  const cmds: string[] = ["NUM_DUPES_TO_DELETE=0"];
+
+  let numDupesToDelete = 0;
+
+  for (const [version, { copies }] of Object.entries(installStateByVersion)) {
+    if (copies.length === 1) {
+      continue;
+    }
+
+    const uniqueChecksums = new Set<string>();
+    for (const copy of copies) {
+      uniqueChecksums.add(
+        JSON.stringify(copy.installState?.checksums, null, 2)
+      );
+    }
+
+    if (uniqueChecksums.size > 1) {
+      console.error("VERSION:", version, "has different checksums");
+      continue;
+    }
+
+    // Prefer google.crx (NOTE: There could be duplicates, but that's okay because we know
+    // we only downloaded them once. So when pruning, make sure to filter by NOT the one we want to keep)
+    const copiesToDelete = copies.filter(
+      (copy) => !copy.downloadState.extensionZipPath.endsWith("/google.crx")
+    );
+
+    cmds.push(`# ${version} has ${copies.length} copies`);
+    for (const {
+      downloadState: { extensionPath, extensionZipPath },
+    } of copiesToDelete) {
+      numDupesToDelete += 1;
+      cmds.push(
+        `echo "[${numDupesToDelete}/$NUM_DUPES_TO_DELETE]: Deleting ${version} dupe"`
+      );
+
+      cmds.push(
+        `rm -rf "${extensionPath}" || { echo "ERROR deleting path: ${extensionPath}"; }`
+      );
+      cmds.push(
+        `rm "${extensionZipPath}" || { echo "ERROR deleting zip: ${extensionZipPath}"; }`
+      );
+    }
+    cmds.push("");
+    cmds.push("");
+  }
+
+  cmds[0] = `NUM_DUPES_TO_DELETE=${numDupesToDelete}`;
+
+  writeLinesToFile(cmds, "prune-dupes.sh");
+  console.log(cmds.join("\n"));
+  console.error("Also wrote to prune-dupes.sh");
+};
+
+// TODO: After cleanup, move non-dupes to canonical
 
 await main();
