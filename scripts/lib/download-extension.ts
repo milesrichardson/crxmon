@@ -22,10 +22,16 @@ export const downloadExtension = async ({
   downloadURL,
   extensionPath,
   extensionZipPath,
+  throwErrors = false,
 }: {
   extensionId: string;
   keepZip?: boolean;
   writeKeyToManifest?: boolean;
+
+  /**
+   * Set to true to throw errors encountered
+   */
+  throwErrors?: boolean;
 
   /**
    * Optional URL from where to download the extension. If not specified, the
@@ -125,17 +131,21 @@ export const downloadExtension = async ({
 
     console.log(`Saved to ${chalk.yellow(extensionPath)}`);
   } catch (error) {
-    console.error(
-      `ERR: Failed to download and unzip extension ${extensionId}: ${error}`
-    );
+    if (throwErrors) {
+      throw error;
+    } else {
+      console.error(
+        `ERR: Failed to download and unzip extension ${extensionId}: ${error}`
+      );
 
-    // Cleanup if possible: remove the extension directory and/or its zip file
-    await removeExtension({ extensionId, extensionPath });
-    await maybeRemoveExtensionZip({
-      extensionId,
-      extensionPath,
-      extensionZipPath,
-    });
+      // Cleanup if possible: remove the extension directory and/or its zip file
+      await removeExtension({ extensionId, extensionPath });
+      await maybeRemoveExtensionZip({
+        extensionId,
+        extensionPath,
+        extensionZipPath,
+      });
+    }
   }
 };
 

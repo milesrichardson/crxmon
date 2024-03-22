@@ -6,6 +6,7 @@ import { withCdRepoRoot } from "./with-cd-repo-root.js";
 export const prettifyExtension = async ({
   extensionId,
   extensionPath,
+  throwErrors = false,
 }: {
   extensionId: string;
 
@@ -18,6 +19,11 @@ export const prettifyExtension = async ({
    *
    */
   extensionPath?: string;
+
+  /**
+   * Set to true to throw errors (default false)
+   */
+  throwErrors?: boolean;
 }) =>
   withCdRepoRoot(async ({}) => {
     extensionPath =
@@ -38,5 +44,9 @@ export const prettifyExtension = async ({
       extensionPath,
     ];
 
-    await $`yarn prettier ${flags}`.nothrow();
+    if (throwErrors) {
+      await $`yarn prettier ${flags}`;
+    } else {
+      await $`yarn prettier ${flags}`.nothrow();
+    }
   });
