@@ -366,7 +366,7 @@ type HashSet = RequireAtLeastOne<{
   crc32: string;
 }>;
 
-type CriticalDetailPageMetadata = {
+export type CriticalDetailPageMetadata = {
   crx: DownloadLinksMetadata["crx"];
   webstore?: DownloadLinksMetadata["webstore"];
   version: string;
