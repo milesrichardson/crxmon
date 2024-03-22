@@ -11,6 +11,7 @@
     "esno": "0.17.0"
   },
   "dependencies": {
+    "@aws-crypto/crc32": "5.2.0",
     "crx-util": "1.0.0",
     "crx3-utils": "0.0.3",
     "jsdom": "23.0.1",
