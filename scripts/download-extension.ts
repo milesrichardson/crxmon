@@ -15,6 +15,7 @@ const {
   doNotWriteKey,
   extensionPath,
   extensionZipPath,
+  downloadURL,
 } = minimist(
   // NOTE: Assumes script is called like:
   // yarn zx scripts/download-extension.ts aapbdbdomjkkjkaonfhkkikfgjllcleb
@@ -35,6 +36,7 @@ const {
       "do-not-write-key-to-manifest": "doNotWriteKey",
       "extension-path": "extensionPath",
       "extension-zip-path": "extensionZipPath",
+      url: "downloadURL",
     },
   }
 ) as ParsedArgs & {
@@ -46,12 +48,14 @@ const {
 
   extensionPath?: string;
   extensionZipPath?: string;
+  downloadURL?: string;
 };
 
 const usage = () => {
   console.log(
     "Usage: yarn zx scripts/download-extension.ts [--overwrite] [--prettify] " +
       "[--keep-zip] [--do-not-write-key-to-manifest] " +
+      "[--url <URL to .crx file (will follow redirects)>] " +
       "[--extensionPath <path to extracted extension directory>] " +
       "[--extensionZipPath <path to downloaded .crx file>] <extensionId>"
   );
@@ -93,6 +97,7 @@ await downloadExtension({
   writeKeyToManifest: !doNotWriteKey,
   extensionPath,
   extensionZipPath,
+  downloadURL,
 });
 
 if (prettify) {
